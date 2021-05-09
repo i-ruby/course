@@ -3,29 +3,21 @@ package work.iruby.course.controller;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import work.iruby.course.entity.Account;
-import work.iruby.course.enums.StatusType;
-import work.iruby.course.repository.AccountResitory;
+import work.iruby.course.dao.AccountDao;
 
 @Controller
 public class LoginController {
 
-    private final AccountResitory accountResitory;
+    private final AccountDao accountDao;
 
-    public LoginController(AccountResitory accountResitory) {
-        this.accountResitory = accountResitory;
+    public LoginController(AccountDao accountDao) {
+        this.accountDao = accountDao;
     }
 
     @GetMapping("/index")
     @ResponseBody
     public Object index() {
-        System.out.println(accountResitory.findAll());
-        Account account = new Account();
-        account.setUsername("iruby");
-        account.setEncryptedPassword("");
-        account.setStatus(StatusType.OK);
-        accountResitory.save(account);
-        System.out.println(accountResitory.findAll());
+        System.out.println(accountDao.findAll());
         return "index";
     }
 }
