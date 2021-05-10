@@ -4,4 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import work.iruby.course.entity.Account;
 
 public interface AccountDao extends JpaRepository<Account, Integer> {
+    Account findOneByUsernameAndEncryptedPassword(String username, String encryptedPassword);
 }

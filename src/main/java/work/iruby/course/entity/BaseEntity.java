@@ -1,4 +1,4 @@
-package work.iruby.course.common;
+package work.iruby.course.entity;
 
 import lombok.Data;
 import lombok.ToString;
