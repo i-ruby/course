@@ -26,11 +26,15 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account login(String username, String password) {
-        Account account = accountDao.findOneByUsernameAndEncryptedPassword(username, password2EncryptedPassword(password));
+        Account account = accountDao.findOneByUsername(username);
         if (account == null) {
             throw HttpCodeException.badRequest("Bad Request 用户的请求包含错误");
         }
-        return account;
+        if (BCrypt.verifyer().verify(password.toCharArray(), account.getEncryptedPassword()).verified) {
+            return account;
+        } else {
+            throw HttpCodeException.badRequest("Bad Request 用户的请求包含错误");
+        }
     }
 
     //将密码明文加密

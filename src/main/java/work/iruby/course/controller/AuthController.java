@@ -6,17 +6,26 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import work.iruby.course.common.Account2User;
 import work.iruby.course.common.AccountContext;
+import work.iruby.course.common.Constant;
 import work.iruby.course.common.HttpCodeException;
+import work.iruby.course.dao.SessionDao;
 import work.iruby.course.entity.Account;
+import work.iruby.course.entity.Session;
 import work.iruby.course.service.AccountService;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1")
 public class AuthController {
     private AccountService accountService;
+    private SessionDao sessionDao;
 
     /**
      * @api {get} /api/v1/session 检查登录状态
@@ -52,7 +61,7 @@ public class AuthController {
     public Object session() {
         Account currentAccount = AccountContext.getCurrentAccount();
         if (currentAccount == null) {
-            throw  HttpCodeException.unAuthorized("Unauthorized");
+            throw HttpCodeException.unAuthorized("Unauthorized");
         }
         return Account2User.of(currentAccount);
     }
@@ -150,7 +159,18 @@ public class AuthController {
     @PostMapping("/session")
     public Object login(@RequestParam("username") String username,
                         @RequestParam("password") String password) {
-        return Account2User.of(accountService.login(username, password));
+        Account account = accountService.login(username, password);
+        String cookie = UUID.randomUUID().toString();
+        Session session = sessionDao.findOneByAccountId(account.getId());
+        if (session == null) {
+            session = new Session();
+            session.setCookie(cookie);
+            session.setAccountId(account.getId());
+        } else {
+            session.setCookie(cookie);
+        }
+        sessionDao.save(session);
+        return Account2User.of(account);
     }
 
     /**
@@ -170,7 +190,16 @@ public class AuthController {
      * }
      */
     @DeleteMapping("/session")
-    public void logout() {
-        AccountContext.setCurrentAccount(null);
+    public void logout(HttpServletRequest request,
+                       HttpServletResponse response) {
+        Account account = AccountContext.getCurrentAccount();
+        if (account == null){
+            throw HttpCodeException.unAuthorized("Unauthorized");
+        }
+        sessionDao.deleteByCookie(Constant.getCookie(request));
+        Cookie cookie = new Cookie(Constant.COOKIE_NAME, "");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        response.setStatus(204);
     }
 }
