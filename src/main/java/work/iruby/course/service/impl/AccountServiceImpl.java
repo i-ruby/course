@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import work.iruby.course.common.HttpCodeException;
 import work.iruby.course.dao.AccountDao;
 import work.iruby.course.entity.Account;
+import work.iruby.course.enums.StatusType;
 import work.iruby.course.service.AccountService;
 
 @Service
@@ -20,6 +21,7 @@ public class AccountServiceImpl implements AccountService {
         Account account = new Account();
         account.setUsername(username);
         account.setEncryptedPassword(password2EncryptedPassword(password));
+        account.setStatus(StatusType.OK);
         account = accountDao.save(account);
         return account;
     }

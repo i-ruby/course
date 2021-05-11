@@ -1,5 +1,6 @@
 package work.iruby.course.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,14 +19,20 @@ import work.iruby.course.service.AccountService;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.transaction.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1")
 public class AuthController {
-    private AccountService accountService;
-    private SessionDao sessionDao;
+    private final AccountService accountService;
+    private final SessionDao sessionDao;
+
+    public AuthController(AccountService accountService, SessionDao sessionDao) {
+        this.accountService = accountService;
+        this.sessionDao = sessionDao;
+    }
 
     /**
      * @api {get} /api/v1/session 检查登录状态
@@ -110,8 +117,8 @@ public class AuthController {
      * @param password 密码
      */
     @PostMapping("/user")
-    public Object register(@RequestParam("username") String username,
-                           @RequestParam("password") String password) {
+    public Object register(@RequestParam(name = "username") String username,
+                           @RequestParam(name = "password") String password) {
         if (username.length() < 2 || username.length() > 20) {
             throw HttpCodeException.badRequest("用户名必须在2到20之间");
         }
@@ -158,18 +165,22 @@ public class AuthController {
      */
     @PostMapping("/session")
     public Object login(@RequestParam("username") String username,
-                        @RequestParam("password") String password) {
+                        @RequestParam("password") String password,
+                        HttpServletResponse response) {
         Account account = accountService.login(username, password);
         String cookie = UUID.randomUUID().toString();
-        Session session = sessionDao.findOneByAccountId(account.getId());
-        if (session == null) {
-            session = new Session();
-            session.setCookie(cookie);
-            session.setAccountId(account.getId());
+        Optional<Session> session = sessionDao.findOneByAccountId(account.getId());
+
+        Session s;
+        if (session.isPresent()) {
+            s = session.get();
         } else {
-            session.setCookie(cookie);
+            s = new Session();
+            s.setAccountId(account.getId());
         }
-        sessionDao.save(session);
+        s.setCookie(cookie);
+        sessionDao.save(s);
+        response.addCookie(new Cookie(Constant.COOKIE_NAME, cookie));
         return Account2User.of(account);
     }
 
@@ -193,13 +204,13 @@ public class AuthController {
     public void logout(HttpServletRequest request,
                        HttpServletResponse response) {
         Account account = AccountContext.getCurrentAccount();
-        if (account == null){
+        if (account == null) {
             throw HttpCodeException.unAuthorized("Unauthorized");
         }
-        sessionDao.deleteByCookie(Constant.getCookie(request));
+        Constant.getCookie(request).ifPresent(sessionDao::deleteByCookie);
         Cookie cookie = new Cookie(Constant.COOKIE_NAME, "");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
-        response.setStatus(204);
+        response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 }

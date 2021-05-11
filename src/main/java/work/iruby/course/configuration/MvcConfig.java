@@ -7,8 +7,15 @@ import work.iruby.course.interceptor.AccountInterceptor;
 
 @Configuration
 public class MvcConfig implements WebMvcConfigurer {
+
+    private final AccountInterceptor accountInterceptor;
+
+    public MvcConfig(AccountInterceptor accountInterceptor) {
+        this.accountInterceptor = accountInterceptor;
+    }
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new AccountInterceptor());
+        registry.addInterceptor(accountInterceptor);
     }
 }
