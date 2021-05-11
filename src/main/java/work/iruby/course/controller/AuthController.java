@@ -118,14 +118,17 @@ public class AuthController {
      */
     @PostMapping("/user")
     public Object register(@RequestParam(name = "username") String username,
-                           @RequestParam(name = "password") String password) {
+                           @RequestParam(name = "password") String password,
+                           HttpServletResponse response) {
         if (username.length() < 2 || username.length() > 20) {
             throw HttpCodeException.badRequest("用户名必须在2到20之间");
         }
         if (password.isBlank()) {
             throw HttpCodeException.badRequest("密码为空或只包含空格");
         }
-        return Account2User.of(accountService.register(username, password));
+        Account account = accountService.register(username, password);
+        response.setStatus(HttpStatus.CREATED.value());
+        return Account2User.of(account);
     }
 
     /**
@@ -143,7 +146,7 @@ public class AuthController {
      *          password: MySecretPassword
      *
      * @apiSuccessExample Success-Response:
-     *     HTTP/1.1 201 Created
+     *     HTTP/1.1 200 OK
      *     {
      *       "user": {
      *           "id": 123,
@@ -201,6 +204,7 @@ public class AuthController {
      * }
      */
     @DeleteMapping("/session")
+    @Transactional
     public void logout(HttpServletRequest request,
                        HttpServletResponse response) {
         Account account = AccountContext.getCurrentAccount();
