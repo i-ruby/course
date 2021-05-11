@@ -1,12 +1,15 @@
 package work.iruby.course.service.impl;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import work.iruby.course.common.HttpCodeException;
 import work.iruby.course.dao.AccountDao;
 import work.iruby.course.entity.Account;
 import work.iruby.course.enums.StatusType;
 import work.iruby.course.service.AccountService;
+
+import java.sql.SQLException;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -22,7 +25,14 @@ public class AccountServiceImpl implements AccountService {
         account.setUsername(username);
         account.setEncryptedPassword(password2EncryptedPassword(password));
         account.setStatus(StatusType.OK);
-        account = accountDao.save(account);
+        try {
+            account = accountDao.save(account);
+        } catch (DataIntegrityViolationException e) {
+            if (e.getMostSpecificCause().getClass().getName().equals("org.postgresql.util.PSQLException") && ((SQLException) e.getMostSpecificCause()).getSQLState().equals("23505")) {
+                throw HttpCodeException.conflict("用户名已注册");
+            }
+            throw e;
+        }
         return account;
     }
 

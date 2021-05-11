@@ -9,9 +9,9 @@ CREATE TABLE account
 );
 
 INSERT INTO account (username, encrypted_password)
-VALUES ('student1', ''),
-       ('teacher1', ''),
-       ('admin1', '');
+VALUES ('student1', '$2a$12$GqDIbB0Q6S6x3g0XjSoDu.SbOiFP94Ap9GcMr42LTb5yiGZdvFfbi'),
+       ('teacher1', '$2a$12$GqDIbB0Q6S6x3g0XjSoDu.SbOiFP94Ap9GcMr42LTb5yiGZdvFfbi'),
+       ('admin1', '$2a$12$GqDIbB0Q6S6x3g0XjSoDu.SbOiFP94Ap9GcMr42LTb5yiGZdvFfbi');
 
 CREATE TABLE role
 (
