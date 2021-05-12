@@ -6,11 +6,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import work.iruby.course.entity.Account;
+import work.iruby.course.common.HttpCodeException;
+import work.iruby.course.service.AccountService;
+import work.iruby.course.vo.UserWithRole;
 
 @RestController
 @RequestMapping("api/v1")
 public class AccountController {
+
+    private final AccountService accountService;
+
+    public AccountController(AccountService accountService) {
+        this.accountService = accountService;
+    }
 
 
     /**
@@ -57,14 +65,14 @@ public class AccountController {
      *     }
      */
     /**
-     * @param id      要修改的用户 id
-     * @param account 新的用户数据
+     * @param id           要修改的用户 id
+     * @param userWithRole 新的用户数据
      * @return
      */
     @PatchMapping("/user")
     public Object updateAccount(@RequestParam("id") Integer id,
-                                @RequestParam("id") Account account) {
-        return null;
+                                @RequestParam("id") UserWithRole userWithRole) {
+        return accountService.updateAccount(userWithRole);
     }
 
     /**
@@ -108,7 +116,7 @@ public class AccountController {
      */
     @GetMapping("/user/{id}")
     public Object getAccountById(@PathVariable("id") Integer id) {
-        return null;
+        return accountService.getAccountById(id);
     }
 
     /**
@@ -173,6 +181,15 @@ public class AccountController {
                                  @RequestParam(name = "pageSize", required = false) Integer pageSize,
                                  @RequestParam(name = "orderBy", required = false) String orderBy,
                                  @RequestParam(name = "orderType", required = false) String orderType) {
-        return null;
+        if (pageNum == null || pageNum <= 0) {
+            pageNum = 1;
+        }
+        if (pageSize == null || pageSize <= 0) {
+            pageSize = 10;
+        }
+        if (orderType != null && orderBy == null) {
+            throw HttpCodeException.badRequest("缺少orderBy!");
+        }
+        return accountService.getAccountPage(search, pageNum, pageSize, orderBy, orderType);
     }
 }

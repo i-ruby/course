@@ -24,12 +24,15 @@ abstract class BaseIntegrationTest {
     @LocalServerPort
     private int port;
     @Value("${spring.datasource.url}")
-    String databaseUrl;
+    private String databaseUrl;
     @Value("${spring.datasource.username}")
-    String databaseUsername;
+    private String databaseUsername;
     @Value("${spring.datasource.password}")
-    String databasePassword;
-    protected String url;
+    private String databasePassword;
+    private String url;
+    protected String STUDENT = "student_user_cookie";
+    protected String TEACHER = "teacher_user_cookie";
+    protected String ADMIN = "admin_user_cookie";
 
     @BeforeEach
     void setup() {
@@ -38,17 +41,6 @@ abstract class BaseIntegrationTest {
         flyway.clean();
         flyway.migrate();
     }
-
-    protected String loginAndGetCookie(String username, String password) throws IOException, InterruptedException {
-        HttpResponse<String> response = sendRequest("get", "/session", null, null);
-        System.out.println(response.body());
-        return response.body();
-    }
-
-    protected String GetCookieAsStudent() throws IOException {
-        return null;
-    }
-
 
     protected HttpResponse<String> sendRequest(String method, String path, Map<String, String> headers, String body) {
         method = method.toUpperCase();
@@ -77,5 +69,21 @@ abstract class BaseIntegrationTest {
             e.printStackTrace();
         }
         return response;
+    }
+
+    protected HttpResponse<String> get(String path, Map<String, String> headers, String cookie) {
+        if (headers == null) {
+            headers = Map.of();
+        }
+        headers.put("cookie", cookie);
+        return sendRequest("get", path, headers, null);
+    }
+
+    protected HttpResponse<String> post(String path, Map<String, String> headers, String body, String cookie) {
+        if (headers == null) {
+            headers = Map.of();
+        }
+        headers.put("cookie", cookie);
+        return sendRequest("post", path, headers, body);
     }
 }

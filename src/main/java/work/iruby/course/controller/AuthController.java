@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import work.iruby.course.common.Account2User;
 import work.iruby.course.common.AccountContext;
 import work.iruby.course.common.Constant;
 import work.iruby.course.common.HttpCodeException;
@@ -15,6 +14,7 @@ import work.iruby.course.dao.SessionDao;
 import work.iruby.course.entity.Account;
 import work.iruby.course.entity.Session;
 import work.iruby.course.service.AccountService;
+import work.iruby.course.vo.User;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -70,7 +70,7 @@ public class AuthController {
         if (currentAccount == null) {
             throw HttpCodeException.unAuthorized("Unauthorized");
         }
-        return Account2User.of(currentAccount);
+        return User.of(currentAccount);
     }
 
     /**
@@ -128,7 +128,7 @@ public class AuthController {
         }
         Account account = accountService.register(username, password);
         response.setStatus(HttpStatus.CREATED.value());
-        return Account2User.of(account);
+        return User.of(account);
     }
 
     /**
@@ -184,7 +184,7 @@ public class AuthController {
         s.setCookie(cookie);
         sessionDao.save(s);
         response.addCookie(new Cookie(Constant.COOKIE_NAME, cookie));
-        return Account2User.of(account);
+        return User.of(account);
     }
 
     /**

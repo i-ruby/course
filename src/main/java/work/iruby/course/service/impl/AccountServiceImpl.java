@@ -2,21 +2,34 @@ package work.iruby.course.service.impl;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import work.iruby.course.common.HttpCodeException;
+import work.iruby.course.common.PageData;
 import work.iruby.course.dao.AccountDao;
+import work.iruby.course.dao.RoleDao;
 import work.iruby.course.entity.Account;
+import work.iruby.course.entity.Role;
 import work.iruby.course.enums.StatusType;
 import work.iruby.course.service.AccountService;
+import work.iruby.course.vo.RoleOnlyName;
+import work.iruby.course.vo.UserWithRole;
 
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AccountServiceImpl implements AccountService {
     private final AccountDao accountDao;
+    private final RoleDao roleDao;
 
-    public AccountServiceImpl(AccountDao accountDao) {
+    public AccountServiceImpl(AccountDao accountDao, RoleDao roleDao) {
         this.accountDao = accountDao;
+        this.roleDao = roleDao;
     }
 
     @Override
@@ -47,6 +60,53 @@ public class AccountServiceImpl implements AccountService {
         } else {
             throw HttpCodeException.badRequest("Bad Request 用户的请求包含错误");
         }
+    }
+
+    @Override
+    public Account getAccountById(int id) {
+        return accountDao.findById(id).orElseThrow(() -> HttpCodeException.notFound("用户不存在!"));
+    }
+
+    @Override
+    public Account updateAccount(UserWithRole userWithRole) {
+        Account account = getAccountById(userWithRole.getId());
+        List<RoleOnlyName> roles = userWithRole.getRoles();
+        List<Role> allRoleInDb = roleDao.findAll();
+        Map<String, Role> allRoleMap = allRoleInDb.stream().collect(Collectors.toMap(Role::getName, role -> role));
+        List<Role> newRoles = roles.stream()
+                .map(RoleOnlyName::getName)
+                .map(allRoleMap::get)
+                .filter(role -> {
+                    if (role == null) {
+                        throw HttpCodeException.badRequest("更新失败,包含不正确的角色");
+                    }
+                    return true;
+                })
+                .collect(Collectors.toList());
+        account.setUsername(userWithRole.getUsername());
+        account.setRoles(newRoles);
+        return accountDao.save(account);
+    }
+
+    @Override
+    public PageData<List<UserWithRole>> getAccountPage(String search, Integer pageNum, Integer pageSize, String orderBy, String orderType) {
+        Sort.Direction direction = Sort.Direction.ASC;
+        if (orderType != null) {
+            direction = Sort.Direction.fromString(orderType);
+        }
+        PageRequest pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(direction, orderBy));
+        Page<Account> accountPage;
+        if (search == null) {
+            accountPage = accountDao.findAll(pageable);
+        } else {
+            accountPage = accountDao.findAllByUsernameStartingWith(search, pageable);
+        }
+        PageData<List<UserWithRole>> withRolePageData = new PageData<>();
+        withRolePageData.setData(accountPage.getContent().stream().map(UserWithRole::of).collect(Collectors.toList()));
+        withRolePageData.setPageNum(pageNum);
+        withRolePageData.setPageSize(pageSize);
+        withRolePageData.setTotalPage(accountPage.getTotalPages());
+        return withRolePageData;
     }
 
     //将密码明文加密
