@@ -9,27 +9,26 @@ import org.springframework.stereotype.Service;
 import work.iruby.course.common.HttpCodeException;
 import work.iruby.course.common.PageData;
 import work.iruby.course.dao.AccountDao;
-import work.iruby.course.dao.RoleDao;
 import work.iruby.course.entity.Account;
 import work.iruby.course.entity.Role;
 import work.iruby.course.enums.StatusType;
 import work.iruby.course.service.AccountService;
+import work.iruby.course.service.RoleService;
 import work.iruby.course.vo.RoleOnlyName;
 import work.iruby.course.vo.UserWithRole;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 public class AccountServiceImpl implements AccountService {
     private final AccountDao accountDao;
-    private final RoleDao roleDao;
+    private final RoleService roleService;
 
-    public AccountServiceImpl(AccountDao accountDao, RoleDao roleDao) {
+    public AccountServiceImpl(AccountDao accountDao, RoleService roleService) {
         this.accountDao = accountDao;
-        this.roleDao = roleDao;
+        this.roleService = roleService;
     }
 
     @Override
@@ -38,15 +37,7 @@ public class AccountServiceImpl implements AccountService {
         account.setUsername(username);
         account.setEncryptedPassword(password2EncryptedPassword(password));
         account.setStatus(StatusType.OK);
-        try {
-            account = accountDao.save(account);
-        } catch (DataIntegrityViolationException e) {
-            if (e.getMostSpecificCause().getClass().getName().equals("org.postgresql.util.PSQLException") && ((SQLException) e.getMostSpecificCause()).getSQLState().equals("23505")) {
-                throw HttpCodeException.conflict("用户名已注册");
-            }
-            throw e;
-        }
-        return account;
+        return saveAndCatchSqlException(account);
     }
 
     @Override
@@ -71,22 +62,14 @@ public class AccountServiceImpl implements AccountService {
     public Account updateAccount(UserWithRole userWithRole) {
         Account account = getAccountById(userWithRole.getId());
         List<RoleOnlyName> roles = userWithRole.getRoles();
-        List<Role> allRoleInDb = roleDao.findAll();
-        Map<String, Role> allRoleMap = allRoleInDb.stream().collect(Collectors.toMap(Role::getName, role -> role));
-        List<Role> newRoles = roles.stream()
-                .map(RoleOnlyName::getName)
-                .map(allRoleMap::get)
-                .filter(role -> {
-                    if (role == null) {
-                        throw HttpCodeException.badRequest("更新失败,包含不正确的角色");
-                    }
-                    return true;
-                })
-                .collect(Collectors.toList());
-        account.setUsername(userWithRole.getUsername());
+        List<Role> newRoles = roleService.getRoleListByRoleNameList(roles.stream().map(RoleOnlyName::getName).collect(Collectors.toList()));
+        if (userWithRole.getUsername() != null){
+            account.setUsername(userWithRole.getUsername());
+        }
         account.setRoles(newRoles);
-        return accountDao.save(account);
+        return saveAndCatchSqlException(account);
     }
+
 
     @Override
     public PageData<List<UserWithRole>> getAccountPage(String search, Integer pageNum, Integer pageSize, String orderBy, String orderType) {
@@ -112,5 +95,17 @@ public class AccountServiceImpl implements AccountService {
     //将密码明文加密
     private String password2EncryptedPassword(String password) {
         return BCrypt.withDefaults().hashToString(12, password.toCharArray());
+    }
+
+    private Account saveAndCatchSqlException(Account account) {
+        try {
+            account = accountDao.save(account);
+        } catch (DataIntegrityViolationException e) {
+            if (e.getMostSpecificCause().getClass().getName().equals("org.postgresql.util.PSQLException") && ((SQLException) e.getMostSpecificCause()).getSQLState().equals("23505")) {
+                throw HttpCodeException.conflict("用户名已注册");
+            }
+            throw e;
+        }
+        return account;
     }
 }

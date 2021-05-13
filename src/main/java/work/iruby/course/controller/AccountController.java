@@ -3,9 +3,11 @@ package work.iruby.course.controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import work.iruby.course.annotation.Role;
 import work.iruby.course.common.HttpCodeException;
 import work.iruby.course.service.AccountService;
 import work.iruby.course.vo.UserWithRole;
@@ -22,7 +24,7 @@ public class AccountController {
 
 
     /**
-     * @api {patch} /api/v1/user 更新用户
+     * @api {patch} /api/v1/user/{id} 更新用户
      * @apiName 更新用户信息（权限）
      * @apiGroup 用户管理
      * @apiDescription
@@ -69,9 +71,13 @@ public class AccountController {
      * @param userWithRole 新的用户数据
      * @return
      */
-    @PatchMapping("/user")
-    public Object updateAccount(@RequestParam("id") Integer id,
-                                @RequestParam("id") UserWithRole userWithRole) {
+    @Role(name = "管理员")
+    @PatchMapping("/user/{id}")
+    public Object updateAccount(@PathVariable("id") Integer id,
+                                @RequestBody UserWithRole userWithRole) {
+        if (userWithRole.getUsername() != null && (userWithRole.getUsername().length() < 2 || userWithRole.getUsername().length() > 20)) {
+            throw HttpCodeException.badRequest("用户名必须在2到20之间");
+        }
         return accountService.updateAccount(userWithRole);
     }
 
@@ -114,6 +120,7 @@ public class AccountController {
      * @param id 用户ID
      * @return 获得的用户
      */
+    @Role(name = "管理员")
     @GetMapping("/user/{id}")
     public Object getAccountById(@PathVariable("id") Integer id) {
         return accountService.getAccountById(id);
@@ -175,6 +182,7 @@ public class AccountController {
      * @param orderType
      * @return
      */
+    @Role(name = "管理员")
     @GetMapping("/user")
     public Object getAccountList(@RequestParam(value = "search", required = false) String search,
                                  @RequestParam(name = "pageNum", required = false) Integer pageNum,

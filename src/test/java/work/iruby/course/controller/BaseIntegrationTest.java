@@ -30,9 +30,9 @@ abstract class BaseIntegrationTest {
     @Value("${spring.datasource.password}")
     private String databasePassword;
     private String url;
-    protected String STUDENT = "student_user_cookie";
-    protected String TEACHER = "teacher_user_cookie";
-    protected String ADMIN = "admin_user_cookie";
+    protected String STUDENT = "COURSE_SESSION_ID=student_user_cookie";
+    protected String TEACHER = "COURSE_SESSION_ID=teacher_user_cookie";
+    protected String ADMIN = "COURSE_SESSION_ID=admin_user_cookie";
 
     @BeforeEach
     void setup() {
@@ -71,19 +71,15 @@ abstract class BaseIntegrationTest {
         return response;
     }
 
-    protected HttpResponse<String> get(String path, Map<String, String> headers, String cookie) {
-        if (headers == null) {
-            headers = Map.of();
-        }
-        headers.put("cookie", cookie);
-        return sendRequest("get", path, headers, null);
+    protected HttpResponse<String> get(String path, String cookie) {
+        return sendRequest("get", path, Map.of("Cookie", cookie), null);
     }
 
-    protected HttpResponse<String> post(String path, Map<String, String> headers, String body, String cookie) {
-        if (headers == null) {
-            headers = Map.of();
-        }
-        headers.put("cookie", cookie);
-        return sendRequest("post", path, headers, body);
+    protected HttpResponse<String> post(String path, String body, String cookie) {
+        return sendRequest("post", path, Map.of("Cookie", cookie), body);
+    }
+
+    protected HttpResponse<String> patch(String path, String body, String cookie) {
+        return sendRequest("patch", path, Map.of("Cookie", cookie), body);
     }
 }

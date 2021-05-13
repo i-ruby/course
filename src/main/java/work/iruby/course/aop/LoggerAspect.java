@@ -24,7 +24,7 @@ public class LoggerAspect {
     }
 
     @Pointcut("execution(* work.iruby.course.controller.*.*(..))")
-    public void controllerOperation() {
+    private void controllerOperation() {
     }
 
     @Around("anyPublicOperation() && controllerOperation()")
